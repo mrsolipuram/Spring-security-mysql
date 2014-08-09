@@ -1,0 +1,84 @@
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:security="http://www.springframework.org/schema/security"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans
+	http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
+	http://www.springframework.org/schema/security
+	http://www.springframework.org/schema/security/spring-security-3.2.xsd">
+
+
+	<security:http access-decision-manager-ref="accessDecisionManager" authentication-manager-ref="authenticationManager">
+		<security:intercept-url pattern="/home.jsp" access="SS_USER" />
+		<security:form-login login-page="/login.jsp"
+			default-target-url="/home.jsp" authentication-failure-url="/login.jsp?error=true"/>
+		<security:logout logout-success-url="/login.jsp"/>
+		<security:remember-me data-source-ref="dataSource" token-validity-seconds="86400"/>
+	</security:http>
+
+	<security:authentication-manager id="authenticationManager">
+		<security:authentication-provider
+			user-service-ref="dbUserService">
+			<!-- <security:password-encoder ref="passwordEncoder" /> -->
+		</security:authentication-provider>
+	</security:authentication-manager>
+	
+	<bean id="accessDecisionManager"
+		class="org.springframework.security.access.vote.AffirmativeBased">
+		<property name="decisionVoters">
+			<list>
+				<ref bean="roleVoter" />
+				<ref bean="authenticatedVoter" />
+			</list>
+		</property>
+	</bean>
+
+	<bean id="roleVoter" class="org.springframework.security.access.vote.RoleVoter">
+		<property name="rolePrefix" value="SS" />
+	</bean>
+
+	<bean id="authenticatedVoter"
+		class="org.springframework.security.access.vote.AuthenticatedVoter">
+	</bean>
+	
+
+	<!-- Spring security password encoder and auto login function -->
+	<bean
+		class="org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder"
+		id="passwordEncoder" />
+		
+	
+
+	<bean id="dbUserService"
+		class="org.springframework.security.core.userdetails.jdbc.JdbcDaoImpl">
+		<property name="dataSource" ref="dataSource" />
+		<property name="usersByUsernameQuery">
+			<value>
+				select email_id as username,password,enabled
+				from user where
+				email_id=?
+                </value>
+		</property>
+		<property name="authoritiesByUsernameQuery">
+			<value>
+				select u.email_id as username, r.role_name as authority from
+				user u, role r, user_role ur where u.user_id = ur.user_id and
+				ur.role_id = r.role_id and u.email_id =?                     
+                </value>
+		</property>
+	</bean>
+	<!-- <bean id="authenticationManager"
+		class="org.springframework.security.authentication.ProviderManager">
+		<property name="providers">
+			<list>
+				<ref local="daoAuthenticationProvider" />
+			</list>
+		</property>
+	</bean>
+	<bean id="daoAuthenticationProvider"
+		class="org.springframework.security.authentication.dao.DaoAuthenticationProvider">
+		<property name="userDetailsService" ref="dbUserService" />
+		<property name="passwordEncoder" ref="passwordEncoder" />
+	</bean> -->
+	
+
+	
+</beans>
